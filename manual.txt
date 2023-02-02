@@ -1,0 +1,185 @@
+Task 1: Creating a pipeline
+In this task, you use AWS CodePipeline to create a pipeline.
+
+In the console, choose Services, and search for and select CodePipeline.
+
+Choose Create pipeline.
+
+For Pipeline name, enter trivia-pipeline and choose Next.
+
+In the Add source stage step, configure the following settings:
+
+Source provider: AWS CodeCommit
+Repository name: trivia-app
+Branch name: main
+Choose Next.
+
+In the Add build stage step, configure the following settings.
+
+Build provider: AWS CodeBuild
+Project name: trivia-unittests
+Choose Next.
+
+In the Add deploy stage step, choose Skip deploy stage and then choose Skip.
+
+In the Review step, choose Create pipeline. You should see a Success message.
+
+Task 2: Creating a feature branch
+In this task, you create a new feature branch in your AWS CodeCommit repository.
+
+In a separate browser tab, switch to the AWS Cloud9 development environment. Make sure that you are in the trivia-app directory.
+
+cd ~/environment/trivia-app
+Copy to clipboard
+Create a feature branch by running the following command:
+
+git checkout -b feature-bonus-scores
+Copy to clipboard
+You should see that you created a new branch and switched to that branch:
+
+Switched to a new branch 'feature-bonus-scores'
+Task 3: Editing the code
+In this task, you edit the code to implement a bonus scores feature.
+
+Open the trivia-app/back-end-python/gameactions/app.py file.
+
+In the trivia_calculate_scores function, locate the code where last_answer is set.
+
+On the next line, add code to set the bonus variable:
+
+last_answer = connection["lastAnswer"] if "lastAnswer" in connection else ""
+bonus = question["bonus"] if "bonus" in question else 0
+Copy to clipboard
+You also need to add the bonus variable to the calculation logic. Update the code incrementing score so that it includes bonus.
+
+Code before:
+
+if last_question_id == question["id"] and last_answer == question["answer"]:
+    score += 20
+Copy to clipboard
+Code after:
+
+if last_question_id == question["id"] and last_answer == question["answer"]:
+        score += 20 + bonus
+Copy to clipboard
+Save the file.
+
+You also need to update the unit tests code so that it tests the new bonus score. Open the trivia-app/back-end-python/tests/unit/test_handler.py file.
+
+Replace SCORES_EVENT with a new event that includes a bonus score:
+
+SCORES_EVENT = {
+"gameid" : "01234567012301230123012345678901",
+"questions" : [
+    { "id" : "q-1111", "question" : "Good question?", "answer" : "Yes", "bonus": 20},
+],
+"iterator" : { "questionpos" : 0 }
+}
+Copy to clipboard
+Save the file.
+
+Find the test_trivia_calculate_scores_correct section and change the assert statements to expect a score of 40.
+
+app.TABLE.update_item.assert_called_with(
+    Key={'gameId': '01234567012301230123012345678901', 'connectionId': 'connection-1'},
+    AttributeUpdates={'score': {'Value': 40, 'Action': 'PUT'}}
+)
+
+app.MANAGEMENT.post_to_connection.assert_has_calls([
+    mock.call(Data='{"action": "playerlist", "players": [{"connectionId": "connection-1", "playerName": "AliceBlue", "score": 40, "currentPlayer": true}]}', ConnectionId='connection-1'),
+    mock.call(Data='{"action": "gameover"}', ConnectionId='connection-1')
+    ])
+Copy to clipboard
+Save the file.
+
+Verify that the code is stable by running the unit test.
+
+./local_build.sh
+Copy to clipboard
+You should see that everything passed.
+
+(Optional) You can verify that the coverage is still 100 percent by previewing the htmlcov/index.html file.
+
+Task 4: Committing and merging the new code
+In this final task, you commit the new code to your feature branch in AWS CodeCommit. You then merge the changes into the main branch.
+
+In the AWS Cloud9 terminal, view the status of your git repository by running the following command:
+
+git status
+Copy to clipboard
+You should see that status of the two files changed to not staged for commit.
+
+modified:   back-end-python/gameactions/app.py
+modified:   back-end-python/tests/unit/test_handler.py
+Add the files, create a commit, and push the changes to the origin remote.
+
+git add *
+git commit -m "new bonus score feature"
+git push origin feature-bonus-scores
+Copy to clipboard
+As of now, you haven’t made any changes to the main branch yet.
+
+Switch back to the CodePipeline tab.
+
+Choose Services and then select CodeCommit.
+
+In CodeCommit, open the trivia-app repository and in the navigation pane, choose Commits.
+
+On the right, view the bonus score commit by opening the dropdown menu with main and selecting feature-bonus-scores.
+
+At the top of the window, choose the trivia-app breadcrumb.
+
+Choose Create pull request.
+
+For Destination, keep main selected and for Source, choose feature-bonus-scores.
+
+Choose Compare. You can scroll down to see the code changes that you made.
+
+In Details > Title, enter New feature: Bonus scoring. Choose Create pull request.
+
+Choose Merge.
+
+Keep both Fast forward merge and Delete source branch feature-bonus-scores after merging? selected. Choose Merge pull request.
+
+In the navigation pane, see the new merge commit by choosing Commits.
+
+In the navigation pane, open the CodePipeline console by choosing Pipeline > Pipelines.
+
+View the pipeline details by opening trivia-pipeline. In the Source section, you should see the new commit: Source: new bonus score feature
+
+Review the Build section. The recently merged commit on the main branch triggered a pipeline build.
+
+pipeline_build
+pipeline_build
+Switch back to the AWS Cloud9 tab.
+
+The new features you committed have been merged to main. Update the main branch locally by running the following commands:
+
+git checkout main
+git pull origin main
+git log
+Copy to clipboard
+In the Git log, you should see the new bonus score feature commit.
+
+Task 5: Deleting all exercise resources
+Congratulations! You have successfully completed the course project. In this task, you delete the AWS resources that you created for this project.
+
+Open the AWS CodePipeline console.
+Delete the trivia-pipeline pipeline.
+Delete the trivia-unittests build project.
+Open the AWS CodeCommit console.
+Delete the trivia-app repository.
+Open the Amazon Simple Storage Service (Amazon S3) console.
+Empty and delete the -trivia-app-bucket.
+Empty and delete the aws-sam-cli-managed-default-samclisourcebucket- bucket.
+Empty and delete the codepipeline- bucket.
+Open the AWS CloudFormation console.
+Delete the trivia-app stack.
+Delete the aws-sam-cli-managed-default stack.
+Open the AWS Identity and Access Management (IAM) console.
+Delete the following IAM roles.
+AWSCodePipelineServiceRole-<region>-trivia-pipeline
+codebuild-trivia-unittests-service-role
+cwe-role-region-trivia-pipeline
+Open the AWS Cloud9 console.
+Delete the trivia-game environment.
